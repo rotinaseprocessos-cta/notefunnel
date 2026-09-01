@@ -240,7 +240,7 @@
     background:rgba(15,17,20,.45);
   }
   .modal-box{
-    background:var(--surface);border-radius:14px;width:360px;max-height:72vh;
+    background:var(--surface);border-radius:14px;width:430px;max-height:72vh;
     display:flex;flex-direction:column;box-shadow:0 12px 40px rgba(0,0,0,.3);overflow:hidden;
   }
   .modal-head{
@@ -424,7 +424,14 @@
       .replace(/[^a-zA-Z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'cliente';
   }
   var activeProject = null;
-  try { activeProject = JSON.parse(localStorage.getItem(PROJECT_KEY) || 'null'); } catch (err) { activeProject = null; }
+  var urlClient = null;
+  try { urlClient = new URLSearchParams(location.search).get('cliente'); } catch (err) { urlClient = null; }
+  if (urlClient) {
+    activeProject = { name: urlClient, key: 'mapa-funil-' + slugify(urlClient) + '-v1' };
+    try { localStorage.setItem(PROJECT_KEY, JSON.stringify(activeProject)); } catch (err) { /* sem storage */ }
+  } else {
+    try { activeProject = JSON.parse(localStorage.getItem(PROJECT_KEY) || 'null'); } catch (err) { activeProject = null; }
+  }
   if (!activeProject || !activeProject.key) {
     var firstName = (window.prompt('Nome do cliente para este mapa de funil:', '') || 'Cliente').trim() || 'Cliente';
     activeProject = { name: firstName, key: 'mapa-funil-' + slugify(firstName) + '-v1' };
@@ -2171,6 +2178,17 @@
     if (ev.key === 'Enter') { document.getElementById('projNewBtn').click(); }
   });
 
+  function copyProjectLink(name, btn) {
+    var link = location.origin + location.pathname + '?cliente=' + encodeURIComponent(name);
+    var restore = btn.textContent;
+    function done(msg) { btn.textContent = msg; setTimeout(function () { btn.textContent = restore; }, 1400); }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(link).then(function () { done('Copiado!'); }).catch(function () { window.prompt('Copie o link:', link); });
+    } else {
+      window.prompt('Copie o link:', link);
+    }
+  }
+
   function switchProject(key, name) {
     try { localStorage.setItem(PROJECT_KEY, JSON.stringify({ key:key, name:name })); } catch (err) { /* sem storage */ }
     location.reload();
@@ -2214,12 +2232,14 @@
         var rowEl = document.createElement('div');
         rowEl.className = 'proj-row' + (row.store_key === STORE ? ' active' : '');
         rowEl.innerHTML = '<span><span class="pname"></span><span class="pwhen"></span></span>' +
-          '<span class="btns"><button type="button" class="primary" data-act="open">Abrir</button>' +
+          '<span class="btns"><button type="button" data-act="link">Link</button>' +
+          '<button type="button" class="primary" data-act="open">Abrir</button>' +
           '<button type="button" class="danger" data-act="del">Excluir</button></span>';
         rowEl.querySelector('.pname').textContent = name;
         rowEl.querySelector('.pwhen').textContent = when;
         rowEl.querySelector('[data-act="open"]').addEventListener('click', function () { switchProject(row.store_key, name); });
         rowEl.querySelector('[data-act="del"]').addEventListener('click', function () { deleteProject(row.store_key, name, rowEl); });
+        rowEl.querySelector('[data-act="link"]').addEventListener('click', function (ev) { copyProjectLink(name, ev.currentTarget); });
         listEl.appendChild(rowEl);
       });
     }).catch(function () {
