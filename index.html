@@ -439,6 +439,11 @@
   }
   var STORE = activeProject.key;
   var CLIENT_NAME = activeProject.name;
+  /* quem entrou por um link direto de cliente (?cliente=) não vê a lista com os outros clientes */
+  if (urlClient) {
+    var bprojectsEl = document.getElementById('bprojects');
+    if (bprojectsEl) { bprojectsEl.style.display = 'none'; }
+  }
   document.title = 'NoteFunnel · ' + CLIENT_NAME;
 
   /* ---------- ícones tipo Funnelytics (losango) ---------- */
