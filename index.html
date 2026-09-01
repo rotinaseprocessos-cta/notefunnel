@@ -2172,11 +2172,40 @@
     var input = document.getElementById('projNewName');
     var name = input.value.trim();
     if (!name) { return; }
-    switchProject('mapa-funil-' + slugify(name) + '-v1', name);
+    createProjectAndGetLink(name);
   });
   document.getElementById('projNewName').addEventListener('keydown', function (ev) {
     if (ev.key === 'Enter') { document.getElementById('projNewBtn').click(); }
   });
+
+  function createProjectAndGetLink(name) {
+    var key = 'mapa-funil-' + slugify(name) + '-v1';
+    fetch(FUNIL_TABELA, {
+      method: 'POST',
+      headers: {
+        apikey: SUPABASE_KEY,
+        Authorization: 'Bearer ' + SUPABASE_KEY,
+        'Content-Type': 'application/json',
+        Prefer: 'resolution=merge-duplicates,return=minimal'
+      },
+      body: JSON.stringify([{ store_key:key, dados:{ pos:{}, hidden:[], texts:{}, users:[], uedges:[], dedges:[], clientName:name }, updated_at:new Date().toISOString() }])
+    }).then(function () {
+      var link = location.origin + location.pathname + '?cliente=' + encodeURIComponent(name);
+      document.getElementById('projNewName').value = '';
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(link).then(function () {
+          window.alert('Projeto "' + name + '" criado!\n\nLink já copiado — cole no Kanban do cliente:\n' + link);
+        }).catch(function () {
+          window.prompt('Projeto "' + name + '" criado! Copie o link:', link);
+        });
+      } else {
+        window.prompt('Projeto "' + name + '" criado! Copie o link:', link);
+      }
+      openProjectsPanel();
+    }).catch(function () {
+      window.alert('Não consegui criar agora (sem internet?). Tenta de novo.');
+    });
+  }
 
   function copyProjectLink(name, btn) {
     var link = location.origin + location.pathname + '?cliente=' + encodeURIComponent(name);
