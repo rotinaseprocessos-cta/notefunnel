@@ -272,6 +272,11 @@
     border-radius:7px;padding:5px 11px;font-size:12px;font-weight:600;cursor:pointer;
   }
   .proj-row button:hover{background:var(--btn-hover)}
+  .proj-row .btns{display:flex;gap:6px;flex:0 0 auto}
+  .proj-row button.primary{background:#25d366;border-color:#25d366;color:#fff}
+  .proj-row button.primary:hover{background:#1eb857}
+  .proj-row button.danger{background:#a33030;border-color:#a33030;color:#fff}
+  .proj-row button.danger:hover{background:#8a2727}
   .proj-row.active{background:var(--surface2)}
   .dock button svg{width:18px;height:18px}
   .dock button.txtbtn{font-size:12px;font-weight:700}
@@ -2171,6 +2176,25 @@
     location.reload();
   }
 
+  function deleteProject(storeKey, name, rowEl) {
+    if (!window.confirm('Excluir o projeto "' + name + '"? Isso apaga o funil salvo dele — não dá pra desfazer.')) { return; }
+    fetch(FUNIL_TABELA + '?store_key=eq.' + encodeURIComponent(storeKey), {
+      method: 'DELETE',
+      headers: { apikey: SUPABASE_KEY, Authorization: 'Bearer ' + SUPABASE_KEY }
+    }).then(function () {
+      try { localStorage.removeItem(storeKey); } catch (err) { /* sem storage */ }
+      if (storeKey === STORE) {
+        try { localStorage.removeItem(PROJECT_KEY); } catch (err) { /* sem storage */ }
+        window.alert('Projeto atual excluído. A página vai recarregar.');
+        location.reload();
+        return;
+      }
+      if (rowEl && rowEl.parentNode) { rowEl.parentNode.removeChild(rowEl); }
+    }).catch(function () {
+      window.alert('Não consegui excluir agora (sem internet?). Tenta de novo.');
+    });
+  }
+
   function openProjectsPanel() {
     projPanel.style.display = 'flex';
     var listEl = document.getElementById('projList');
@@ -2189,10 +2213,13 @@
         var when = row.updated_at ? new Date(row.updated_at).toLocaleDateString('pt-BR') : '';
         var rowEl = document.createElement('div');
         rowEl.className = 'proj-row' + (row.store_key === STORE ? ' active' : '');
-        rowEl.innerHTML = '<span><span class="pname"></span><span class="pwhen"></span></span><button type="button">Abrir</button>';
+        rowEl.innerHTML = '<span><span class="pname"></span><span class="pwhen"></span></span>' +
+          '<span class="btns"><button type="button" class="primary" data-act="open">Abrir</button>' +
+          '<button type="button" class="danger" data-act="del">Excluir</button></span>';
         rowEl.querySelector('.pname').textContent = name;
         rowEl.querySelector('.pwhen').textContent = when;
-        rowEl.querySelector('button').addEventListener('click', function () { switchProject(row.store_key, name); });
+        rowEl.querySelector('[data-act="open"]').addEventListener('click', function () { switchProject(row.store_key, name); });
+        rowEl.querySelector('[data-act="del"]').addEventListener('click', function () { deleteProject(row.store_key, name, rowEl); });
         listEl.appendChild(rowEl);
       });
     }).catch(function () {
